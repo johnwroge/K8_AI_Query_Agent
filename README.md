@@ -30,81 +30,120 @@ TThis project is configured to use OpenAI's GPT-4 model as specified in the requ
 
 1. Clone the repository
 
-`git clone https://github.com/johnwroge/K8_AI_Query_Agent.git`
+```bash
+git clone https://github.com/johnwroge/K8_AI_Query_Agent.git
+```
 
-`cd k8_AI_Agent`
+```bash
+cd k8_AI_Agent
+```
 
 2. Create virtual environment
 
-`python3.10 -m venv venv`
+```bash
+python3.10 -m venv venv
+```
 
 Activate on Mac:
 
-`source venv/bin/activate`
+```bash
+source venv/bin/activate
+```
 
 Activate on Windows
 
-`.\venv\Scripts\activate`
+```bash
+.\venv\Scripts\activate
+```
 
 3. Install Dependencies
 
-`pip install -r requirements.txt`
-
+```bash
+pip install -r requirements.txt
+```
 4. Create env variable in env file. 
 
-`OPENAI_API_KEY=your-api-key-here`
-
+```bash
+OPENAI_API_KEY=your-api-key-here
+```
 
 ## Kubernetes Setup
 
 
 1. Start Minikube
 
-`minikube start`
+```bash
+minikube start
+```
 
 2. Verify cluster is running
 
-`minikube status`
+```bash
+minikube status
+```
+```bash
+kubectl get nodes
+```
 
-`kubectl get nodes`
+3. Apply deployment configuration
 
-3. Deploy sample applications
+Create RBAC and service account
+```bash
+kubectl apply -f deployment.yaml
+```
+
+4. Deploy sample applications
 
 ### Deploy nginx
 
-`kubectl create deployment nginx --image=nginx`
-
-`kubectl expose deployment nginx --port=80`
+```bash
+kubectl create deployment nginx --image=nginx
+```
+```bash
+kubectl expose deployment nginx --port=80
+```
 
 ### Deploy MongoDB
 
-`kubectl create deployment mongodb --image=mongo`
-
-`kubectl expose deployment mongodb --port=27017`
+```bash
+kubectl create deployment mongodb --image=mongo
+```
+```bash
+kubectl expose deployment mongodb --port=27017
+```
 
 ### Deploy Prometheus
 
-`kubectl apply -f prometheus.yaml`
+```bash
+kubectl apply -f prometheus.yaml
+```
 
 ### Verify deployments
 
-`kubectl get pods,deployments,services`
-
+```bash
+kubectl get pods,deployments,services
+```
 
 ## Running the Agent
 
 
 1. Start the flask server
 
-`python main.py`
+```bash
+python main.py
+```
 
 2. Monitor logs
 
-`tail -f agent.log`
+```bash
+tail -f agent.log
+```
 
 # Running Tests
 
-`python -m unittest test_main.py`
+```bash
+python -m unittest test_main.py
+```
 
 
 ### Example Curl Requests
@@ -152,11 +191,15 @@ Response: {"answer":"kubernetes,mongodb,prometheus","query":"What services are r
 
 ## Stop Minikube
 
-`minikube stop`
+```bash
+minikube stop
+```
 
 ## Delete cluster
 
-`minikube delete`
+```bash
+minikube delete
+```
 
 ## Troubleshooting
 
