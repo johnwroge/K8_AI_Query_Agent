@@ -1,6 +1,24 @@
+
 # Kubernetes AI Query Agent
 
-An AI-powered agent that answers queries about your Kubernetes cluster.
+An AI-powered agent that answers queries about your Kubernetes cluster using GPT-4. This tool enables natural language queries about your Kubernetes resources and provides concise, accurate responses about the state of your cluster.
+
+## API Model Choice
+
+TThis project is configured to use OpenAI's GPT-4 model as specified in the requirements. However, for cost-effective development and testing, you can switch to GPT-3.5-turbo by updating the model parameter in the `query_gpt` function:
+
+
+```python
+ response = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo", 
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": query}
+            ],
+            temperature=0
+        )
+```
+
 
 ## Prerequisites
 - Python 3.10
@@ -139,5 +157,18 @@ Response: {"answer":"kubernetes,mongodb,prometheus","query":"What services are r
 ## Delete cluster
 
 `minikube delete`
+
+## Troubleshooting
+
+If you encounter any issues:
+
+1. Check your OpenAI API key is properly set in .env
+2. Verify Minikube is running: `minikube status`
+3. Check pods are running: `kubectl get pods`
+4. Check logs: `tail -f agent.log`
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 
