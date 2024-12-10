@@ -5,7 +5,7 @@ An AI-powered agent that answers queries about your Kubernetes cluster using GPT
 
 ## API Model Choice
 
-TThis project is configured to use OpenAI's GPT-4 model as specified in the requirements. However, for cost-effective development and testing, you can switch to GPT-3.5-turbo by updating the model parameter in the `query_gpt` function:
+TThis project is configured to use OpenAI's GPT-4 model, however, for cost-effective development and testing, you can switch to GPT-3.5-turbo by updating the model parameter in the `query_gpt` function:
 
 
 ```python
