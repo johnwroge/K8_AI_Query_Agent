@@ -1,4 +1,4 @@
-# Kubernetes_AI_Query_Agent
+# Kubernetes AI Query Agent
 
 An AI-powered agent that answers queries about your Kubernetes cluster.
 
@@ -18,3 +18,74 @@ An AI-powered agent that answers queries about your Kubernetes cluster.
 
 2. Create virtual environment
 
+`python3.10 -m venv venv`
+
+Activate on Mac:
+
+`source venv/bin/activate`
+
+Activate on Windows
+
+`.\venv\Scripts\activate`
+
+3. Install Dependencies
+
+`pip install -r requirements.txt`
+
+4. Create env variable in env file. 
+
+`OPENAI_API_KEY=your-api-key-here`
+
+
+## Kubernetes Setup
+
+
+1. Start Minikube
+
+`minikube start`
+
+2. Verify cluster is running
+
+`minikube status`
+
+`kubectl get nodes`
+
+3. Deploy sample applications
+
+### Deploy nginx
+
+`kubectl create deployment nginx --image=nginx`
+
+`kubectl expose deployment nginx --port=80`
+
+### Deploy MongoDB
+
+`kubectl create deployment mongodb --image=mongo`
+
+`kubectl expose deployment mongodb --port=27017`
+
+### Deploy Prometheus
+
+`kubectl apply -f prometheus.yaml`
+
+### Verify deployments
+
+`kubectl get pods,deployments,services`
+
+
+## Running the Agent
+
+
+1. Start the flask server
+
+`python main.py`
+
+2. Monitor logs
+
+`tail -f agent.log`
+
+
+
+# Running Tests
+
+`python -m unittest test_main.py`
