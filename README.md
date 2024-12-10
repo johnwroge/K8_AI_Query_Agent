@@ -139,7 +139,7 @@ python main.py
 tail -f agent.log
 ```
 
-# Running Tests
+## Running Tests
 
 ```bash
 python -m unittest test_main.py
