@@ -84,8 +84,60 @@ Activate on Windows
 
 `tail -f agent.log`
 
-
-
 # Running Tests
 
 `python -m unittest test_main.py`
+
+
+### Example Curl Requests
+
+Check Nodes:
+
+```bash
+curl -X POST http://localhost:8000/query \
+-H "Content-Type: application/json" \
+-d '{"query": "How many nodes are in the cluster?"}'
+```
+
+Response: {"answer":"1","query":"How many nodes are in the cluster?"}
+
+Check Pods:
+
+```bash
+curl -X POST http://localhost:8000/query \
+-H "Content-Type: application/json" \
+-d '{"query": "How many pods are in the default namespace?"}'
+```
+
+Response: {"answer":"3","query":"How many pods are in the default namespace?"}
+
+Check deployments:
+
+```bash
+curl -X POST http://localhost:8000/query \
+-H "Content-Type: application/json" \
+-d '{"query": "What deployments are running?"}'
+```
+
+Response: {"answer":"mongodb,nginx,prometheus","query":"What deployments are running?"}
+
+Check services:
+```bash
+curl -X POST http://localhost:8000/query \
+-H "Content-Type: application/json" \
+-d '{"query": "What services are running in the default namespace?"}'
+```
+Response: {"answer":"kubernetes,mongodb,prometheus","query":"What services are running in the default namespace?"}
+
+
+# Cluster Management / Teardown 
+
+## Stop Minikube
+
+`minikube stop`
+
+## Delete cluster
+
+`minikube delete`
+
+
