@@ -94,7 +94,7 @@ kubectl apply -f deployment.yaml
 
 4. Deploy sample applications
 
-### Deploy nginx
+### Deploy NGINX
 
 ```bash
 kubectl create deployment nginx --image=nginx
