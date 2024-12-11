@@ -27,7 +27,7 @@ CLUSTER_INFO = Info('k8s_agent_cluster', 'Kubernetes cluster information')
 logging.basicConfig(level=logging.DEBUG, 
                    format='%(asctime)s %(levelname)s - %(message)s',
                    filename='agent.log', filemode='a')
-logging.getLogger().addHandler(logging.StreamHandler())  # This will send logs to stdout
+logging.getLogger().addHandler(logging.StreamHandler())  
 
 
 logging.info("Testing OpenAI connection...")
@@ -50,10 +50,8 @@ app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
 
 try:
     if os.getenv('KUBERNETES_SERVICE_HOST'):
-        # We're running inside a cluster
         config.load_incluster_config()
     else:
-        # We're running locally
         config.load_kube_config()
         
     v1 = k8s_client.CoreV1Api()
