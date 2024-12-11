@@ -278,6 +278,8 @@ def create_app():
             CLUSTER_INFO.info(metrics)
             
             logging.debug("Querying GPT...")
+            logging.debug("Cluster_info...", cluster_info)
+            logging.debug("Query Info...", query)
             answer = assistant.query_gpt(query, cluster_info)
             logging.debug(f"Generated answer: {answer}")
             
