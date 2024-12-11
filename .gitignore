@@ -22,3 +22,6 @@ openai-secret.yaml
 *.log
 
 deployments.md
+old/
+log.txt
+log2.txt
