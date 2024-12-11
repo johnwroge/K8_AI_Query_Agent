@@ -4,6 +4,11 @@
 
 An AI-powered agent that answers queries about your Kubernetes cluster using GPT-4. This tool enables natural language queries about your Kubernetes resources and provides concise, accurate responses about the state of your cluster.
 
+Uses natural language processing to:
+- Fetch real-time information about pods, services, secrets, and configmaps
+- Interpret cluster state and configurations
+- Monitor cluster health through Prometheus metrics
+
 ## Table of Contents
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
