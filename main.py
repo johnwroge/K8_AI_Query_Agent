@@ -68,9 +68,19 @@ class K8sAssistant:
         """Gather detailed information about the Kubernetes cluster with focus on Harbor components"""
         info = {}
         try:
+            logging.debug("Starting Kubernetes information gathering...")
+            logging.debug(f"Current context: {config.list_kube_config_contexts()[0]}")
+            
             namespaces = self.v1.list_namespace()
-            harbor_namespaces = [ns.metadata.name for ns in namespaces.items 
-                            if 'harbor' in ns.metadata.name]
+            all_namespaces = [ns.metadata.name for ns in namespaces.items]
+            logging.debug(f"Available namespaces: {all_namespaces}")
+            
+            harbor_namespaces = [ns for ns in all_namespaces if 'harbor' in ns]
+            logging.debug(f"Detected Harbor namespaces: {harbor_namespaces}")
+            
+            if not harbor_namespaces:
+                logging.warning("No Harbor namespaces found. Checking default namespace as fallback...")
+                harbor_namespaces = ['default'] 
 
             all_pods = []
             all_services = []
@@ -78,124 +88,198 @@ class K8sAssistant:
             all_configmaps = []
 
             for ns in harbor_namespaces:
-                pods = self.v1.list_namespaced_pod(ns)
-                for pod in pods.items:
-                    pod_info = {
-                        "name": pod.metadata.name,
-                        "namespace": pod.metadata.namespace,
-                        "status": pod.status.phase,
-                        "containers": []
-                    }
+                try:
+                    logging.debug(f"Processing namespace: {ns}")
                     
-                    for container in pod.spec.containers:
-                        container_info = {
-                            "name": container.name,
-                            "ports": [],
-                            "env": [],
-                            "volume_mounts": [],
-                            "probes": {}
+                    try:
+                        pods = self.v1.list_namespaced_pod(ns)
+                        pod_names = [p.metadata.name for p in pods.items]
+                        logging.debug(f"Found pods in {ns}: {pod_names}")
+                    except Exception as pod_error:
+                        logging.error(f"Error getting pods in namespace {ns}: {pod_error}")
+                        continue
+
+                    try:
+                        services = self.v1.list_namespaced_service(ns)
+                        service_names = [s.metadata.name for s in services.items]
+                        logging.debug(f"Found services in {ns}: {service_names}")
+                    except Exception as svc_error:
+                        logging.error(f"Error getting services in namespace {ns}: {svc_error}")
+                        continue
+
+                    try:
+                        secrets = self.v1.list_namespaced_secret(ns)
+                        secret_names = [s.metadata.name for s in secrets.items]
+                        logging.debug(f"Found secrets in {ns}: {secret_names}")
+                    except Exception as secret_error:
+                        logging.error(f"Error getting secrets in namespace {ns}: {secret_error}")
+                        continue
+
+                    try:
+                        configmaps = self.v1.list_namespaced_config_map(ns)
+                        configmap_names = [cm.metadata.name for cm in configmaps.items]
+                        logging.debug(f"Found configmaps in {ns}: {configmap_names}")
+                    except Exception as cm_error:
+                        logging.error(f"Error getting configmaps in namespace {ns}: {cm_error}")
+                        continue
+
+                    for pod in pods.items:
+                        try:
+                            pod_info = {
+                                "name": pod.metadata.name,
+                                "namespace": pod.metadata.namespace,
+                                "status": pod.status.phase,
+                                "containers": []
+                            }
+                            
+                            for container in pod.spec.containers:
+                                container_info = self._get_container_info(container)
+                                pod_info["containers"].append(container_info)
+                            
+                            if pod.spec.volumes:
+                                pod_info["volumes"] = self._get_volume_info(pod.spec.volumes)
+                            
+                            all_pods.append(pod_info)
+                            
+                        except Exception as pod_process_error:
+                            logging.error(f"Error processing pod {pod.metadata.name}: {pod_process_error}")
+                            continue
+
+                    for svc in services.items:
+                        try:
+                            service_info = {
+                                "name": svc.metadata.name,
+                                "namespace": svc.metadata.namespace,
+                                "ports": [
+                                    {
+                                        "port": port.port,
+                                        "target_port": port.target_port,
+                                        "protocol": port.protocol
+                                    }
+                                    for port in svc.spec.ports
+                                ] if svc.spec.ports else []
+                            }
+                            all_services.append(service_info)
+                        except Exception as svc_process_error:
+                            logging.error(f"Error processing service {svc.metadata.name}: {svc_process_error}")
+                            continue
+
+                    all_secrets.extend([
+                        {
+                            "name": secret.metadata.name,
+                            "namespace": secret.metadata.namespace
                         }
-                        
-                        if container.ports:
-                            container_info["ports"] = [
-                                {"container_port": p.container_port, 
-                                "protocol": p.protocol} 
-                                for p in container.ports
-                            ]
-                        
-                        if container.env:
-                            container_info["env"] = [
-                                {
-                                    "name": env.name,
-                                    "value": env.value if env.value else "from_secret" if env.value_from else None,
-                                    "value_from": {
-                                        "secret_name": env.value_from.secret_key_ref.name,
-                                        "secret_key": env.value_from.secret_key_ref.key
-                                    } if env.value_from and env.value_from.secret_key_ref else None
-                                }
-                                for env in container.env
-                            ]
-                        
-                        if container.volume_mounts:
-                            container_info["volume_mounts"] = [
-                                {
-                                    "name": vm.name,
-                                    "mount_path": vm.mount_path,
-                                    "sub_path": vm.sub_path
-                                }
-                                for vm in container.volume_mounts
-                            ]
-                        
-                        if container.readiness_probe:
-                            container_info["probes"]["readiness"] = {
-                                "http_get": {
-                                    "path": container.readiness_probe.http_get.path,
-                                    "port": container.readiness_probe.http_get.port
-                                } if container.readiness_probe.http_get else None,
-                                "tcp_socket": {
-                                    "port": container.readiness_probe.tcp_socket.port
-                                } if container.readiness_probe.tcp_socket else None
-                            }
-                        
-                        pod_info["containers"].append(container_info)
-                    
-                    if pod.spec.volumes:
-                        pod_info["volumes"] = [
-                            {
-                                "name": vol.name,
-                                "persistent_volume_claim": vol.persistent_volume_claim.claim_name if vol.persistent_volume_claim else None,
-                                "secret": vol.secret.secret_name if vol.secret else None
-                            }
-                            for vol in pod.spec.volumes
-                        ]
-                    
-                    all_pods.append(pod_info)
+                        for secret in secrets.items
+                    ])
 
-                services = self.v1.list_namespaced_service(ns)
-                for svc in services.items:
-                    service_info = {
-                        "name": svc.metadata.name,
-                        "namespace": svc.metadata.namespace,
-                        "ports": [
-                            {
-                                "port": port.port,
-                                "target_port": port.target_port,
-                                "protocol": port.protocol
-                            }
-                            for port in svc.spec.ports
-                        ]
-                    }
-                    all_services.append(service_info)
+                    all_configmaps.extend([
+                        {
+                            "name": cm.metadata.name,
+                            "namespace": cm.metadata.namespace,
+                            "data": cm.data if cm.data else {}
+                        }
+                        for cm in configmaps.items
+                    ])
 
-                secrets = self.v1.list_namespaced_secret(ns)
-                all_secrets.extend([
-                    {
-                        "name": secret.metadata.name,
-                        "namespace": secret.metadata.namespace
-                    }
-                    for secret in secrets.items
-                ])
+                except Exception as ns_error:
+                    logging.error(f"Error processing namespace {ns}: {ns_error}")
+                    continue
 
-                configmaps = self.v1.list_namespaced_config_map(ns)
-                all_configmaps.extend([
-                    {
-                        "name": cm.metadata.name,
-                        "namespace": cm.metadata.namespace,
-                        "data": cm.data if cm.data else {}
-                    }
-                    for cm in configmaps.items
-                ])
+            info = {
+                "pods": all_pods,
+                "services": all_services,
+                "secrets": all_secrets,
+                "configmaps": all_configmaps
+            }
 
-            info["pods"] = all_pods
-            info["services"] = all_services
-            info["secrets"] = all_secrets
-            info["configmaps"] = all_configmaps
+            logging.debug("Summary of gathered information:")
+            logging.debug(f"Total pods found: {len(all_pods)}")
+            logging.debug(f"Total services found: {len(all_services)}")
+            logging.debug(f"Total secrets found: {len(all_secrets)}")
+            logging.debug(f"Total configmaps found: {len(all_configmaps)}")
+            
+            if not any([all_pods, all_services, all_secrets, all_configmaps]):
+                logging.warning("No Kubernetes resources found in any namespace!")
+
+            return info
 
         except Exception as e:
-            logging.error(f"Error gathering K8s info: {e}")
-            raise
+            logging.error(f"Error gathering K8s info: {str(e)}")
+            logging.error(f"Exception type: {type(e).__name__}")
+            logging.error(f"Exception details: {str(e)}")
+            return {"pods": [], "services": [], "secrets": [], "configmaps": []}
+
+    def _get_container_info(self, container) -> Dict:
+        """Helper method to extract container information"""
+        try:
+            container_info = {
+                "name": container.name,
+                "ports": [],
+                "env": [],
+                "volume_mounts": [],
+                "probes": {}
+            }
             
-        return info
+            if container.ports:
+                container_info["ports"] = [
+                    {"container_port": p.container_port, 
+                    "protocol": p.protocol} 
+                    for p in container.ports
+                ]
+            
+            if container.env:
+                container_info["env"] = [
+                    {
+                        "name": env.name,
+                        "value": env.value if env.value else "from_secret" if env.value_from else None,
+                        "value_from": {
+                            "secret_name": env.value_from.secret_key_ref.name,
+                            "secret_key": env.value_from.secret_key_ref.key
+                        } if env.value_from and env.value_from.secret_key_ref else None
+                    }
+                    for env in container.env
+                ]
+            
+            if container.volume_mounts:
+                container_info["volume_mounts"] = [
+                    {
+                        "name": vm.name,
+                        "mount_path": vm.mount_path,
+                        "sub_path": vm.sub_path
+                    }
+                    for vm in container.volume_mounts
+                ]
+            
+            if container.readiness_probe:
+                container_info["probes"]["readiness"] = {
+                    "http_get": {
+                        "path": container.readiness_probe.http_get.path,
+                        "port": container.readiness_probe.http_get.port
+                    } if container.readiness_probe.http_get else None,
+                    "tcp_socket": {
+                        "port": container.readiness_probe.tcp_socket.port
+                    } if container.readiness_probe.tcp_socket else None
+                }
+                
+            return container_info
+        except Exception as e:
+            logging.error(f"Error processing container {container.name}: {e}")
+            return {}
+
+    def _get_volume_info(self, volumes) -> List[Dict]:
+        """Helper method to extract volume information"""
+        try:
+            return [
+                {
+                    "name": vol.name,
+                    "persistent_volume_claim": vol.persistent_volume_claim.claim_name if vol.persistent_volume_claim else None,
+                    "secret": vol.secret.secret_name if vol.secret else None
+                }
+                for vol in volumes
+            ]
+        except Exception as e:
+            logging.error(f"Error processing volumes: {e}")
+            return []
 
     def query_gpt(self, query: str, cluster_info: dict) -> str:
         """Query GPT with enhanced system prompt for better Harbor information retrieval"""
