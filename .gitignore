@@ -1,3 +1,4 @@
+
 # Python
 __pycache__/
 venv/
@@ -15,3 +16,9 @@ agent.log
 # Other
 
 notes.md
+
+openai-secret.yaml
+.env
+*.log
+
+deployments.md

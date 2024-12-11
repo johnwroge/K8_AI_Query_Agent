@@ -5,21 +5,33 @@ from pydantic import BaseModel, ValidationError
 from kubernetes import client as k8s_client, config
 from openai import OpenAI
 import openai
-print(openai.__version__)
-
 from typing import List
 from dotenv import load_dotenv
+from prometheus_client import Counter, Histogram, Info, generate_latest, CONTENT_TYPE_LATEST
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from prometheus_client import make_wsgi_app
+import time
 
 load_dotenv()
 
-
 openai_client = OpenAI()
+
+api_key = os.getenv('OPENAI_API_KEY')
+
+
+QUERY_COUNTER = Counter('k8s_agent_queries_total', 'Total number of queries processed')
+QUERY_LATENCY = Histogram('k8s_agent_query_duration_seconds', 'Time spent processing queries')
+ERROR_COUNTER = Counter('k8s_agent_errors_total', 'Total number of errors', ['error_type'])
+CLUSTER_INFO = Info('k8s_agent_cluster', 'Kubernetes cluster information')
 
 logging.basicConfig(level=logging.DEBUG, 
                    format='%(asctime)s %(levelname)s - %(message)s',
                    filename='agent.log', filemode='a')
+logging.getLogger().addHandler(logging.StreamHandler())  # This will send logs to stdout
+
 
 logging.info("Testing OpenAI connection...")
+
 try:
     test_response = openai_client.chat.completions.create(
         model="gpt-4",  
@@ -32,8 +44,18 @@ except Exception as e:
 
 app = Flask(__name__)
 
+app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
+    '/metrics': make_wsgi_app()
+})
+
 try:
-    config.load_kube_config()
+    if os.getenv('KUBERNETES_SERVICE_HOST'):
+        # We're running inside a cluster
+        config.load_incluster_config()
+    else:
+        # We're running locally
+        config.load_kube_config()
+        
     v1 = k8s_client.CoreV1Api()
     apps_v1 = k8s_client.AppsV1Api()
     logging.info("Successfully connected to Kubernetes cluster")
@@ -49,21 +71,25 @@ def get_k8s_info() -> dict:
     """Gather information about the Kubernetes cluster"""
     info = {}
     try:
+        logging.debug("Attempting to list pods...")
         pods = v1.list_namespaced_pod("default")
         info["pods"] = [{"name": p.metadata.name, "status": p.status.phase} for p in pods.items]
-        logging.info(f"Found pods: {info['pods']}")
+        logging.debug(f"Found pods: {info['pods']}")
         
+        logging.debug("Attempting to list nodes...")
         nodes = v1.list_node()
         info["nodes"] = [{"name": n.metadata.name} for n in nodes.items]
-        logging.info(f"Found nodes: {info['nodes']}")
+        logging.debug(f"Found nodes: {info['nodes']}")
         
+        logging.debug("Attempting to list deployments...")
         deployments = apps_v1.list_namespaced_deployment("default")
         info["deployments"] = [{"name": d.metadata.name} for d in deployments.items]
-        logging.info(f"Found deployments: {info['deployments']}")
+        logging.debug(f"Found deployments: {info['deployments']}")
 
+        logging.debug("Attempting to list services...")
         services = v1.list_namespaced_service("default")
         info["services"] = [{"name": s.metadata.name} for s in services.items]
-        logging.info(f"Found services: {info['services']}")
+        logging.debug(f"Found services: {info['services']}")
         
     except Exception as e:
         logging.error(f"Error gathering K8s info: {e}")
@@ -101,27 +127,57 @@ def query_gpt(query: str, cluster_info: dict) -> str:
         logging.error(f"Error querying GPT: {e}")
         return "Error processing query"
 
+def update_cluster_metrics(cluster_info: dict):
+    """Update Prometheus metrics with cluster information"""
+    metrics = {
+        'pod_count': str(len(cluster_info.get('pods', []))),
+        'node_count': str(len(cluster_info.get('nodes', []))),
+        'deployment_count': str(len(cluster_info.get('deployments', []))),
+        'service_count': str(len(cluster_info.get('services', [])))
+    }
+    CLUSTER_INFO.info(metrics)
+
+
+@app.route('/metrics', methods=['GET'])
+def metrics():
+    return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
 @app.route('/query', methods=['POST'])
 def create_query():
+    start_time = time.time()
     try:
         request_data = request.json
         query = request_data.get('query')
-        logging.info(f"Received query: {query}")
-    
-        cluster_info = get_k8s_info()
+        logging.debug(f"Received query: {query}")
         
+        QUERY_COUNTER.inc()
+        
+        logging.debug("Gathering cluster info...")
+        cluster_info = get_k8s_info()
+        logging.debug(f"Cluster info: {cluster_info}")
+        update_cluster_metrics(cluster_info)
+        
+        logging.debug("Querying GPT...")
         answer = query_gpt(query, cluster_info)
-        logging.info(f"Generated answer: {answer}")
+        logging.debug(f"Generated answer: {answer}")
         
         response = QueryResponse(query=query, answer=answer)
         return jsonify(response.model_dump())
     
     except ValidationError as e:
+        ERROR_COUNTER.labels(error_type='validation').inc()
         logging.error(f"Validation error: {e}")
         return jsonify({"error": e.errors()}), 400
     except Exception as e:
+        ERROR_COUNTER.labels(error_type='unexpected').inc()
         logging.error(f"Unexpected error: {e}")
         return jsonify({"error": str(e)}), 500
+    finally:
+        QUERY_LATENCY.observe(time.time() - start_time)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)

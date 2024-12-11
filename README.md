@@ -1,4 +1,6 @@
 
+**Note** This AI Agent is currently an experimental side project. 
+
 # Kubernetes AI Query Agent
 
 An AI-powered agent that answers queries about your Kubernetes cluster using GPT-4. This tool enables natural language queries about your Kubernetes resources and provides concise, accurate responses about the state of your cluster.
@@ -67,7 +69,7 @@ pip install -r requirements.txt
 OPENAI_API_KEY=your-api-key-here
 ```
 
-## Kubernetes Setup
+## Kubernetes Setup for 
 
 
 1. Start Minikube
@@ -213,5 +215,7 @@ If you encounter any issues:
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+
 
 
