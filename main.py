@@ -281,10 +281,49 @@ class K8sAssistant:
             logging.error(f"Error processing volumes: {e}")
             return []
 
+    # def query_gpt(self, query: str, cluster_info: dict) -> str:
+    #     """Query GPT with enhanced system prompt for better Harbor information retrieval"""
+    #     try:
+    #         system_prompt = f"""You are a Kubernetes cluster assistant specializing in Harbor deployments. Answer questions about the cluster based on this information:
+
+    #         Cluster Information:
+    #         Pods: {json.dumps(cluster_info.get('pods', []), indent=2)}
+    #         Services: {json.dumps(cluster_info.get('services', []), indent=2)}
+    #         Secrets: {json.dumps(cluster_info.get('secrets', []), indent=2)}
+    #         ConfigMaps: {json.dumps(cluster_info.get('configmaps', []), indent=2)}
+            
+    #         Response Rules:
+    #         1. Return only raw values without explanations or text
+    #         2. For container ports, return only the number (e.g., "8080" not "port 8080")
+    #         3. For paths, return the full path (e.g., "/data/postgresql")
+    #         4. For environment variables, return only the value
+    #         5. For status queries, use single words (e.g., "Running" not "Status is Running")
+    #         6. For multiple items, separate with commas (no spaces)
+    #         7. If information isn't found in the cluster data, respond with "Unknown"
+    #         8. For readiness probe paths, include the full path with leading slash
+    #         9. For PostgreSQL database names, check both environment variables and configmaps
+    #         10. When asked about secrets, check both direct secret references and environment variables using secrets
+    #         """
+                
+    #         response = self.openai_client.chat.completions.create(
+    #             # model="gpt-4",
+    #             model="gpt-3.5-turbo", 
+
+    #             messages=[
+    #                 {"role": "system", "content": system_prompt},
+    #                 {"role": "user", "content": query}
+    #             ],
+    #             temperature=0
+    #         )
+            
+    #         return response.choices[0].message.content.strip()
+    #     except Exception as e:
+    #         logging.error(f"Error querying GPT: {e}")
+    #         return "Error processing query"
     def query_gpt(self, query: str, cluster_info: dict) -> str:
-        """Query GPT with enhanced system prompt for better Harbor information retrieval"""
+        """Query GPT with a generalized system prompt for Kubernetes cluster information retrieval"""
         try:
-            system_prompt = f"""You are a Kubernetes cluster assistant specializing in Harbor deployments. Answer questions about the cluster based on this information:
+            system_prompt = f"""You are a Kubernetes cluster assistant. Analyze the cluster information and answer questions precisely. 
 
             Cluster Information:
             Pods: {json.dumps(cluster_info.get('pods', []), indent=2)}
@@ -292,23 +331,24 @@ class K8sAssistant:
             Secrets: {json.dumps(cluster_info.get('secrets', []), indent=2)}
             ConfigMaps: {json.dumps(cluster_info.get('configmaps', []), indent=2)}
             
-            Response Rules:
-            1. Return only raw values without explanations or text
-            2. For container ports, return only the number (e.g., "8080" not "port 8080")
-            3. For paths, return the full path (e.g., "/data/postgresql")
-            4. For environment variables, return only the value
-            5. For status queries, use single words (e.g., "Running" not "Status is Running")
-            6. For multiple items, separate with commas (no spaces)
-            7. If information isn't found in the cluster data, respond with "Unknown"
-            8. For readiness probe paths, include the full path with leading slash
-            9. For PostgreSQL database names, check both environment variables and configmaps
-            10. When asked about secrets, check both direct secret references and environment variables using secrets
-            """
-                
-            response = self.openai_client.chat.completions.create(
-                # model="gpt-4",
-                model="gpt-3.5-turbo", 
+            Response Guidelines:
+            1. Provide concise, direct answers
+            2. Use raw, unformatted values
+            3. If a specific detail is not found, respond with "Unknown"
+            4. For multiple results, use comma-separated values without spaces
+            5. Focus on extracting exact information from the cluster data
+            6. Prioritize existing metadata in the cluster resources
+            7. Be precise and stick to the available information
 
+            Context Processing Rules:
+            - For container information: Extract names, ports, environment variables
+            - For services: Identify ports, service types, and associated pods
+            - For secrets: List names, check for sensitive configurations
+            - For configmaps: Extract configuration details
+            """
+            
+            response = self.openai_client.chat.completions.create(
+                model="gpt-3.5-turbo", 
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": query}
@@ -329,7 +369,6 @@ def create_app():
     app = Flask(__name__)
     assistant = K8sAssistant()
 
-    # Add Prometheus metrics endpoint
     app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
         '/metrics': make_wsgi_app()
     })

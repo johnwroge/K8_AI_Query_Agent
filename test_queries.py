@@ -24,7 +24,7 @@ def test_query(query: str) -> None:
     
     try:
         response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()  # Raise an exception for bad status codes
+        response.raise_for_status()  
         
         result = response.json()
         print(f"\nQuery: {result['query']}")
@@ -43,7 +43,7 @@ def run_all_tests() -> None:
     
     for query in test_queries:
         test_query(query)
-        time.sleep(1)  # Add a small delay between requests
+        time.sleep(1) 
     
     print("\nAll tests completed!")
 

@@ -10,5 +10,5 @@ COPY . .
 RUN adduser --disabled-password --gecos '' appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Updated CMD with better logging
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--log-level", "debug", "--capture-output", "--enable-stdio-inheritance", "--access-logfile", "-", "--error-logfile", "-", "main:app"]
+# Updated CMD to use the create_app factory
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--log-level", "debug", "--capture-output", "--enable-stdio-inheritance", "--access-logfile", "-", "--error-logfile", "-", "main:create_app()"]
