@@ -340,7 +340,7 @@ class K8sAssistant:
             6. Prioritize existing metadata in the cluster resources
             7. Be precise and stick to the available information
 
-            Context Processing Rules:
+            Context Processing Rules:model
             - For container information: Extract names, ports, environment variables
             - For services: Identify ports, service types, and associated pods
             - For secrets: List names, check for sensitive configurations
@@ -348,6 +348,7 @@ class K8sAssistant:
             """
             
             response = self.openai_client.chat.completions.create(
+                # model="gpt-4",
                 model="gpt-3.5-turbo", 
                 messages=[
                     {"role": "system", "content": system_prompt},

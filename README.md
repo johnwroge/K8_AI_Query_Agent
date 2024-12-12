@@ -178,17 +178,18 @@ chmod +x test_api.sh
 
 ## API Model Configuration
 
-This project uses OpenAI's GPT-4 by default. For cost-effective development, you can switch to GPT-3.5-turbo:
+This project uses OpenAI's gpt-3.5-turbo by default for cost-effective development and testing.
+You can switch to GPT-4 for better language capabilities:
 
 ```python
-response = openai_client.chat.completions.create(
-    model="gpt-3.5-turbo", 
-    messages=[
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": query}
-    ],
-    temperature=0
-)
+response = self.openai_client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": query}
+                ],
+                temperature=0
+            )
 ```
 
 ## Cluster Management
