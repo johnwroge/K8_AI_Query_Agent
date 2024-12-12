@@ -2,7 +2,7 @@
 
 **Note:** This AI Agent is currently an experimental side project. 
 
-An AI-powered agent that answers queries about your Kubernetes cluster using GPT-4. This tool enables natural language queries about your Kubernetes resources and provides concise, accurate responses about the state of your cluster.
+An AI-powered agent that answers queries about your Kubernetes cluster using Open AI. This tool enables natural language queries about your Kubernetes resources and provides concise, accurate responses about the state of your cluster.
 
 Uses natural language processing to:
 - Fetch real-time information about pods, services, secrets, and configmaps
