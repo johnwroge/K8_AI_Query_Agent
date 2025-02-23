@@ -1,6 +1,6 @@
 # Kubernetes AI Query Agent
 
-**Note:** This AI Agent is currently an experimental side project. 
+**Note:** This AI Agent is currently under development
 
 An AI-powered agent that answers queries about your Kubernetes cluster using Open AI. This tool enables natural language queries about your Kubernetes resources and provides concise, accurate responses about the state of your cluster.
 
