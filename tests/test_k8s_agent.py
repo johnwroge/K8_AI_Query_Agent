@@ -6,9 +6,9 @@ from unittest.mock import Mock, patch, MagicMock
 import json
 from kubernetes.client.rest import ApiException
 
-from k8s_client import K8sClient
-from ai_service import AIQueryService
-from main import create_app
+from src.k8s_client import K8sClient
+from src.ai_service import AIQueryService
+from src.main import create_app
 
 
 class TestK8sClient(unittest.TestCase):

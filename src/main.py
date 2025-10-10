@@ -12,8 +12,8 @@ from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from prometheus_client import make_wsgi_app
 from dotenv import load_dotenv
 
-from k8s_client import K8sClient
-from ai_service import AIQueryService
+from src.k8s_client import K8sClient
+from src.ai_service import AIQueryService
 
 load_dotenv()
 
