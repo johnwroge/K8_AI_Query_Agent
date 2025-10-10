@@ -11,8 +11,7 @@ An intelligent REST API that enables natural language queries about Kubernetes c
 - **Real-time Cluster Analysis**: Fetch live information about pods, services, and deployments
 - **Multi-namespace Support**: Query resources across different namespaces
 - **Prometheus Metrics**: Built-in monitoring with Prometheus-compatible metrics
-- **Production-Ready**: Comprehensive error handling, logging, and health checks
-- **Modular Architecture**: Clean separation of concerns for easy testing and maintenance
+
 
 ## Table of Contents
 
