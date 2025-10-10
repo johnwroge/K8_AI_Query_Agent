@@ -1,226 +1,402 @@
 # Kubernetes AI Query Agent
 
-**Note:** This AI Agent is currently under development
+![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-An AI-powered agent that answers queries about your Kubernetes cluster using Open AI. This tool enables natural language queries about your Kubernetes resources and provides concise, accurate responses about the state of your cluster.
+An intelligent REST API that enables natural language queries about Kubernetes cluster resources using OpenAI's GPT models. Query your cluster state, monitor resources, and get insights through conversational AI.
 
-Uses natural language processing to:
-- Fetch real-time information about pods, services, secrets, and configmaps
-- Interpret cluster state and configurations
-- Monitor cluster health through Prometheus metrics
+## Features
+
+- **Natural Language Interface**: Ask questions about your cluster in plain English
+- **Real-time Cluster Analysis**: Fetch live information about pods, services, and deployments
+- **Multi-namespace Support**: Query resources across different namespaces
+- **Prometheus Metrics**: Built-in monitoring with Prometheus-compatible metrics
+- **Production-Ready**: Comprehensive error handling, logging, and health checks
+- **Modular Architecture**: Clean separation of concerns for easy testing and maintenance
 
 ## Table of Contents
+
+- [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [Local Development Setup](#local-development-setup)
-- [Kubernetes Deployment Setup](#kubernetes-deployment-setup)
+- [Configuration](#configuration)
 - [Usage](#usage)
-- [Example Queries](#example-queries)
-- [Cluster Management](#cluster-management)
+- [API Reference](#api-reference)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Monitoring](#monitoring)
 - [Troubleshooting](#troubleshooting)
 
+## Architecture
+
+```
+┌─────────────┐
+│   Client    │
+└──────┬──────┘
+       │ HTTP Request
+       ▼
+┌─────────────────────┐
+│   Flask API         │
+│   (main.py)         │
+└──────┬──────────────┘
+       │
+       ├────────────────┐
+       ▼                ▼
+┌──────────────┐  ┌──────────────┐
+│  K8s Client  │  │ AI Service   │
+│ (k8s_client) │  │ (ai_service) │
+└──────┬───────┘  └──────┬───────┘
+       │                  │
+       ▼                  ▼
+┌──────────────┐  ┌──────────────┐
+│ Kubernetes   │  │  OpenAI API  │
+│   Cluster    │  │              │
+└──────────────┘  └──────────────┘
+```
+
 ## Prerequisites
-- Python 3.10
-- Minikube
-- kubectl
-- Docker
+
+- Python 3.10 or higher
+- Kubernetes cluster (local or remote)
+  - Minikube for local development
+  - kubectl configured with cluster access
 - OpenAI API key
+- Docker (for containerized deployment)
 
 ## Installation
 
-1. Clone the repository:
+### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/johnwroge/K8_AI_Query_Agent.git
-cd k8_AI_Agent
+cd K8_AI_Query_Agent
 ```
 
-2. Create and activate virtual environment:
+### 2. Set Up Virtual Environment
+
 ```bash
-# Create environment
+# Create virtual environment
 python3.10 -m venv venv
 
-# Activate on Mac/Linux:
+# Activate on macOS/Linux
 source venv/bin/activate
 
-# Activate on Windows:
+# Activate on Windows
 .\venv\Scripts\activate
 ```
 
-3. Install Dependencies:
+### 3. Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Create `.env` file with your OpenAI API key:
+### 4. Configure Environment
+
+Create a `.env` file in the project root:
+
 ```bash
-OPENAI_API_KEY=your-api-key-here
+OPENAI_API_KEY=your-openai-api-key-here
+OPENAI_MODEL=gpt-3.5-turbo
+LOG_LEVEL=INFO
+APP_PORT=8000
 ```
 
-## Local Development Setup
+## ⚙️ Configuration
 
-1. Start the flask server:
+The application can be configured through environment variables or the `.env` file:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OPENAI_API_KEY` | Your OpenAI API key | Required |
+| `OPENAI_MODEL` | GPT model to use | `gpt-3.5-turbo` |
+| `OPENAI_TEMPERATURE` | Model temperature | `0.0` |
+| `APP_HOST` | Server host | `0.0.0.0` |
+| `APP_PORT` | Server port | `8000` |
+| `LOG_LEVEL` | Logging level | `INFO` |
+| `K8S_NAMESPACE_FILTER` | Filter namespaces | `None` |
+
+## 💻 Usage
+
+### Local Development
+
+1. **Start the Application**
+
 ```bash
 python main.py
 ```
 
-2. Monitor logs:
+2. **Make a Query**
+
 ```bash
-tail -f agent.log
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How many pods are running in the default namespace?"}'
 ```
 
-3. Test the application:
+3. **Check Health**
+
 ```bash
-python -m unittest test_main.py
+curl http://localhost:8000/health
 ```
 
-## Kubernetes Deployment Setup
+### Docker Deployment
 
-1. Start Minikube:
+1. **Build Image**
+
 ```bash
-minikube start
-minikube status
-kubectl get nodes
+docker build -t k8s-ai-agent:latest .
 ```
 
-2. Create OpenAI Secret:
-```bash
-# Generate base64 encoded API key
-echo -n "your-actual-openai-key" | base64
+2. **Run Container**
 
-# Create openai-secret.yaml (DO NOT commit this file)
+```bash
+docker run -d \
+  -p 8000:8000 \
+  -e OPENAI_API_KEY=your-key \
+  --name k8s-agent \
+  k8s-ai-agent:latest
+```
+
+## 📖 API Reference
+
+### POST /query
+
+Process a natural language query about the cluster.
+
+**Request Body:**
+```json
+{
+  "query": "What pods are running?",
+  "namespace": "default"
+}
+```
+
+**Response:**
+```json
+{
+  "query": "What pods are running?",
+  "answer": "nginx,mongodb,prometheus,k8s-agent",
+  "processing_time_ms": 1234.56
+}
+```
+
+**Status Codes:**
+- `200`: Success
+- `400`: Invalid request
+- `500`: Server error
+
+### GET /health
+
+Health check endpoint.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "components": {
+    "kubernetes": "connected",
+    "ai_service": "connected",
+    "model": "gpt-3.5-turbo"
+  }
+}
+```
+
+### GET /namespaces
+
+List all namespaces in the cluster.
+
+**Response:**
+```json
+{
+  "namespaces": ["default", "kube-system", "kube-public"]
+}
+```
+
+### GET /metrics
+
+Prometheus metrics endpoint for monitoring.
+
+## 🧪 Testing
+
+### Run Unit Tests
+
+```bash
+# Run all tests
+python -m pytest
+
+# Run with coverage
+python -m pytest --cov=. --cov-report=html
+
+# Run specific test file
+python -m pytest test_k8s_agent.py -v
+```
+
+### Run Integration Tests
+
+```bash
+# Requires running cluster and OpenAI API key
+python -m pytest -m integration
+```
+
+### Test Examples
+
+```python
+# Test health endpoint
+python -m pytest test_k8s_agent.py::TestFlaskApp::test_health_check_success
+
+# Test query processing
+python -m pytest test_k8s_agent.py::TestFlaskApp::test_query_success
+```
+
+## 🚢 Kubernetes Deployment
+
+### 1. Create OpenAI Secret
+
+```bash
+# Encode your API key
+echo -n "your-openai-api-key" | base64
+
+# Create secret manifest
+cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Secret
 metadata:
   name: openai-api-key
 type: Opaque
 data:
-  api-key: <your-base64-encoded-api-key>
-
-# Apply the secret
-kubectl apply -f openai-secret.yaml
+  api-key: <your-base64-encoded-key>
+EOF
 ```
 
-3. Build and Deploy Application:
+### 2. Deploy Application
+
 ```bash
-# Configure Docker to use Minikube's daemon
+# Build image with Minikube's Docker daemon
 eval $(minikube docker-env)
+docker build -t k8s-ai-agent:latest .
 
-# Build the image
-docker build -t k8s-agent:latest .
-
-# Apply deployment configuration
+# Apply deployment
 kubectl apply -f deployment.yaml
+
+# Verify deployment
+kubectl get pods -l app=k8s-agent
 ```
 
-4. Deploy Sample Applications:
+### 3. Expose Service
+
 ```bash
-# Deploy NGINX
-kubectl create deployment nginx --image=nginx
-kubectl expose deployment nginx --port=80
-
-# Deploy MongoDB
-kubectl create deployment mongodb --image=mongo
-kubectl expose deployment mongodb --port=27017
-
-# Deploy Prometheus
-kubectl apply -f prometheus.yaml
-```
-
-5. Verify Deployments:
-```bash
-kubectl get pods,deployments,services
-```
-
-## Usage
-
-1. Set up port forwarding:
-```bash
+# Port forward for testing
 kubectl port-forward service/k8s-agent-service 8000:80
+
+# Or create an ingress for production
+kubectl apply -f ingress.yaml
 ```
 
-2. The API will be available at `http://localhost:8000`
+## 📊 Monitoring
 
-## Example Queries
+### Prometheus Metrics
 
-Check Nodes:
+The application exposes Prometheus metrics at `/metrics`:
+
+- `k8s_agent_queries_total`: Total queries processed
+- `k8s_agent_query_duration_seconds`: Query processing latency
+- `k8s_agent_errors_total`: Total errors by type
+- `k8s_agent_cluster_info`: Current cluster information
+
+### View Metrics
+
 ```bash
+curl http://localhost:8000/metrics
+```
+
+### Grafana Dashboard
+
+Import the provided Grafana dashboard configuration:
+
+```bash
+kubectl apply -f grafana-dashboard.json
+```
+
+## 🔍 Example Queries
+
+### Cluster Information
+
+```bash
+# Count pods
 curl -X POST http://localhost:8000/query \
--H "Content-Type: application/json" \
--d '{"query": "How many nodes are in the cluster?"}'
-```
-Response: `{"answer":"1","query":"How many nodes are in the cluster?"}`
+  -H "Content-Type: application/json" \
+  -d '{"query": "How many pods are running?"}'
 
-Check Pods:
-```bash
+# List deployments
 curl -X POST http://localhost:8000/query \
--H "Content-Type: application/json" \
--d '{"query": "How many pods are in the default namespace?"}'
-```
-Response: `{"answer":"4","query":"How many pods are in the default namespace?"}`
+  -H "Content-Type: application/json" \
+  -d '{"query": "What deployments exist?"}'
 
-Check Deployments:
-```bash
+# Check pod status
 curl -X POST http://localhost:8000/query \
--H "Content-Type: application/json" \
--d '{"query": "What deployments are running?"}'
+  -H "Content-Type: application/json" \
+  -d '{"query": "What is the status of nginx pod?"}'
 ```
-Response: `{"answer":"k8s-agent,mongodb,nginx,prometheus","query":"What deployments are running?"}`
 
-## Test Script
-
-The test_api.sh file can be updated to make requests to the API for desired metrics. 
+### Multi-Namespace Queries
 
 ```bash
-chmod +x test_api.sh
-
-./test_api.sh
+# Query specific namespace
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "List all services", "namespace": "kube-system"}'
 ```
 
-## API Model Configuration
+## 🐛 Troubleshooting
 
-This project uses OpenAI's gpt-3.5-turbo by default for cost-effective development and testing.
-You can switch to GPT-4 for better language capabilities:
+### Common Issues
 
-```python
-response = self.openai_client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": query}
-                ],
-                temperature=0
-            )
-```
+**Issue: "Failed to connect to Kubernetes cluster"**
+- Verify kubectl is configured: `kubectl cluster-info`
+- Check kubeconfig: `echo $KUBECONFIG`
+- Ensure cluster is running: `minikube status`
 
-## Cluster Management
+**Issue: "OpenAI API error"**
+- Verify API key is correct in `.env`
+- Check API key has sufficient credits
+- Verify network connectivity to OpenAI
 
-Stop Minikube:
+**Issue: "Pod is not running"**
+- Check pod logs: `kubectl logs -f <pod-name>`
+- Describe pod: `kubectl describe pod <pod-name>`
+- Verify secret is created: `kubectl get secret openai-api-key`
+
+### Debug Mode
+
+Enable debug logging:
+
 ```bash
-minikube stop
+LOG_LEVEL=DEBUG python main.py
 ```
 
-Delete Cluster:
+View logs:
+
 ```bash
-minikube delete
+tail -f agent.log
 ```
 
-## Troubleshooting
+## 🤝 Contributing
 
-Common issues and solutions:
+Contributions are welcome! Please follow these steps:
 
-1. OpenAI API Issues:
-   - Verify API key is correct in .env file
-   - Check API key is properly encoded in secret
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run tests (`pytest`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
-2. Kubernetes Issues:
-   - Check Minikube status: `minikube status`
-   - Verify pods are running: `kubectl get pods`
-   - Check pod logs: `kubectl logs -f <pod-name>`
-
-3. Docker Issues:
-   - Ensure using Minikube's Docker daemon: `eval $(minikube docker-env)`
-   - Rebuild image if needed: `docker build -t k8s-agent:latest .`
-
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+
+
+

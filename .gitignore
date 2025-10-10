@@ -16,6 +16,7 @@ agent.log
 # Other
 
 notes.md
+roadmap.md
 
 openai-secret.yaml
 .env
