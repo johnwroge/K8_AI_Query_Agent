@@ -216,7 +216,7 @@ List all namespaces in the cluster.
 
 Prometheus metrics endpoint for monitoring.
 
-## 🧪 Testing
+## Testing
 
 ### Run Unit Tests
 
@@ -317,7 +317,7 @@ Import the provided Grafana dashboard configuration:
 kubectl apply -f grafana-dashboard.json
 ```
 
-## 🔍 Example Queries
+## Example Queries
 
 ### Cluster Information
 
