@@ -151,7 +151,7 @@ def create_app(
         
         try:
             # Validate request
-            request_data = request.get_json()
+            request_data = request.get_json(silent=True)
             if not request_data:
                 return jsonify({"error": "Request body is required"}), 400
             
@@ -188,7 +188,16 @@ def create_app(
         except ValidationError as e:
             ERROR_COUNTER.labels(error_type='validation').inc()
             logger.warning(f"Validation error: {e}")
-            return jsonify({"error": "Invalid request", "details": e.errors()}), 400
+            # Convert validation errors to JSON-serializable format
+            error_details = [
+                {
+                    "field": ".".join(str(x) for x in err["loc"]),
+                    "message": err["msg"],
+                    "type": err["type"]
+                }
+                for err in e.errors()
+            ]
+            return jsonify({"error": "Invalid request", "details": error_details}), 400
             
         except Exception as e:
             ERROR_COUNTER.labels(error_type='unexpected').inc()
