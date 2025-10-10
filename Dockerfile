@@ -1,14 +1,25 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
+# Copy requirements first (better caching)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy source code
+COPY src/ ./src/
+COPY .env* ./
 
-RUN adduser --disabled-password --gecos '' appuser && chown -R appuser:appuser /app
+# Add gunicorn to requirements or install here
+RUN pip install --no-cache-dir gunicorn
+
+# Create non-root user
+RUN adduser --disabled-password --gecos '' appuser && \
+    chown -R appuser:appuser /app
+
 USER appuser
 
-# Updated CMD to use the create_app factory
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--log-level", "debug", "--capture-output", "--enable-stdio-inheritance", "--access-logfile", "-", "--error-logfile", "-", "main:create_app()"]
+EXPOSE 8000
+
+# Run with gunicorn, pointing to the factory in src/main.py
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--log-level", "info", "--access-logfile", "-", "--error-logfile", "-", "src.main:create_app()"]
