@@ -29,6 +29,10 @@ class AIQueryService:
     def _validate_connection(self) -> None:
         """Validate OpenAI API connection."""
         try:
+            
+            logger.info("Skipping OpenAI validation to preserve API quota")
+            return
+            
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": "ping"}],
