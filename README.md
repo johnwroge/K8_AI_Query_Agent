@@ -101,7 +101,7 @@ LOG_LEVEL=INFO
 APP_PORT=8000
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 The application can be configured through environment variables or the `.env` file:
 
@@ -115,7 +115,7 @@ The application can be configured through environment variables or the `.env` fi
 | `LOG_LEVEL` | Logging level | `INFO` |
 | `K8S_NAMESPACE_FILTER` | Filter namespaces | `None` |
 
-## 💻 Usage
+## Usage
 
 ### Local Development
 
@@ -157,7 +157,7 @@ docker run -d \
   k8s-ai-agent:latest
 ```
 
-## 📖 API Reference
+## API Reference
 
 ### POST /query
 
@@ -248,7 +248,7 @@ python -m pytest test_k8s_agent.py::TestFlaskApp::test_health_check_success
 python -m pytest test_k8s_agent.py::TestFlaskApp::test_query_success
 ```
 
-## 🚢 Kubernetes Deployment
+## Deployment
 
 ### 1. Create OpenAI Secret
 
@@ -292,7 +292,7 @@ kubectl port-forward service/k8s-agent-service 8000:80
 kubectl apply -f ingress.yaml
 ```
 
-## 📊 Monitoring
+## Monitoring
 
 ### Prometheus Metrics
 
@@ -347,7 +347,7 @@ curl -X POST http://localhost:8000/query \
   -d '{"query": "List all services", "namespace": "kube-system"}'
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -380,7 +380,7 @@ View logs:
 tail -f agent.log
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -392,7 +392,7 @@ Contributions are welcome! Please follow these steps:
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
