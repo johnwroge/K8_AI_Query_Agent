@@ -1,28 +1,59 @@
-
 # Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 venv/
-__pycache__
+.venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
 # Environment variables
 .env
+.env.local
+.env.*.local
 
 # Logs
-agent.log
-
-# Mac
-.DS_Store
-
-# Other
-
-notes.md
-roadmap.md
-
-openai-secret.yaml
-.env
 *.log
-
-deployments.md
-old/
+agent.log
 log.txt
 log2.txt
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+openai-secret.yaml
+notes.md
+old/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+roadmap.md
+debug.log
