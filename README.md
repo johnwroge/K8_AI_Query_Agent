@@ -5,16 +5,16 @@
 
 An intelligent REST API that enables natural language queries about Kubernetes cluster resources using OpenAI's GPT models. Query your cluster state, monitor resources, and get insights through conversational AI.
 
-## 🌟 Features
+## Features
 
 - **Natural Language Interface**: Ask questions about your cluster in plain English
-- **Real-time Cluster Analysis**: Fetch live information about pods, services, deployments, and more
+- **Real-time Cluster Analysis**: Fetch live information about pods, services, and deployments
 - **Multi-namespace Support**: Query resources across different namespaces
 - **Prometheus Metrics**: Built-in monitoring with Prometheus-compatible metrics
 - **Production-Ready**: Comprehensive error handling, logging, and health checks
 - **Modular Architecture**: Clean separation of concerns for easy testing and maintenance
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
@@ -27,7 +27,7 @@ An intelligent REST API that enables natural language queries about Kubernetes c
 - [Monitoring](#monitoring)
 - [Troubleshooting](#troubleshooting)
 
-## 🏗 Architecture
+## Architecture
 
 ```
 ┌─────────────┐
@@ -54,7 +54,7 @@ An intelligent REST API that enables natural language queries about Kubernetes c
 └──────────────┘  └──────────────┘
 ```
 
-## 📦 Prerequisites
+## Prerequisites
 
 - Python 3.10 or higher
 - Kubernetes cluster (local or remote)
@@ -63,7 +63,7 @@ An intelligent REST API that enables natural language queries about Kubernetes c
 - OpenAI API key
 - Docker (for containerized deployment)
 
-## 🚀 Installation
+## Installation
 
 ### 1. Clone the Repository
 
@@ -397,16 +397,6 @@ Contributions are welcome! Please follow these steps:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
 
-- OpenAI for GPT API
-- Kubernetes Python Client community
-- Flask framework contributors
 
-## 📞 Support
-
-For issues and questions:
-- Open an issue on GitHub
-- Check existing issues for solutions
-- Review troubleshooting guide
 
