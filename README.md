@@ -368,6 +368,8 @@ pytest tests/test_debug_assistant.py::TestDebugAssistant::test_detect_crashloopb
 
 ### 1. Create OpenAI Secret
 
+```bash
+
 # Create secret from example
 cp deployment/openai-secret.example.yaml deployment/openai-secret.yaml
 
@@ -381,6 +383,7 @@ kubectl apply -f deployment/openai-secret.yaml
 
 # Verify it was created
 kubectl get secret openai-secret
+```
 
 ### 2. Deploy Application
 
