@@ -376,10 +376,9 @@ cp deployment/openai-secret.example.yaml deployment/openai-secret.yaml
 # Edit the file with your actual API key (no encoding needed)
 vim deployment/openai-secret.yaml
 
-# Apply the secret
+# Apply the secret (Kubernetes automatically converts stringData to base64-encoded data when you apply it)
 kubectl apply -f deployment/openai-secret.yaml
 
-**Kubernetes automatically converts stringData to base64-encoded data when you apply it.**
 
 # Verify it was created
 kubectl get secret openai-secret
