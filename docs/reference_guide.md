@@ -5,6 +5,7 @@
 ```bash
 # Set OpenAI key
 echo "OPENAI_API_KEY=sk-..." > .env
+echo "OPENAI_MODEL=gpt-4o-mini" >> .env
 
 # Start services
 minikube start
