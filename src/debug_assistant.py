@@ -26,7 +26,7 @@ class DebugAssistant:
             raise ValueError("OpenAI API key is required")
         
         self.client = OpenAI(api_key=self.api_key)
-        self.model = "gpt-4o-mini"  # Cost-effective model, still excellent for debugging
+        self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  
     
     def detect_common_patterns(self, analysis_data: Dict[str, Any]) -> Dict[str, Any]:
         """
