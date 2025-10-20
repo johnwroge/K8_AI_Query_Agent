@@ -11,6 +11,7 @@ ENV/
 *.egg-info/
 dist/
 build/
+roadmaps
 
 # Testing
 .pytest_cache/
@@ -47,7 +48,7 @@ ehthumbs.db
 Thumbs.db
 
 # Project specific
-openai-secret.yaml
+deployment/openai-secret.yaml
 notes.md
 old/
 

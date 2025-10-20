@@ -368,16 +368,19 @@ pytest tests/test_debug_assistant.py::TestDebugAssistant::test_detect_crashloopb
 
 ### 1. Create OpenAI Secret
 
-```bash
-# Encode your API key
-echo -n "your-openai-api-key" | base64
-
 # Create secret from example
 cp deployment/openai-secret.example.yaml deployment/openai-secret.yaml
-# Edit the file and add your base64-encoded key
 
+# Edit the file with your actual API key (no encoding needed)
+vim deployment/openai-secret.yaml
+
+# Apply the secret
 kubectl apply -f deployment/openai-secret.yaml
-```
+
+**Kubernetes automatically converts stringData to base64-encoded data when you apply it.**
+
+# Verify it was created
+kubectl get secret openai-secret
 
 ### 2. Deploy Application
 
