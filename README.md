@@ -379,7 +379,6 @@ vim deployment/openai-secret.yaml
 # Apply the secret (Kubernetes automatically converts stringData to base64-encoded data when you apply it)
 kubectl apply -f deployment/openai-secret.yaml
 
-
 # Verify it was created
 kubectl get secret openai-secret
 ```
