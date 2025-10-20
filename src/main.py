@@ -1,6 +1,6 @@
 """
-Main application module for Kubernetes AI Query Agent.
-Provides a Flask REST API for querying Kubernetes cluster state using AI.
+Main application module for Kubernetes AI Debug Assistant.
+Provides a Flask REST API for debugging Kubernetes pods using AI.
 """
 import logging
 import time
@@ -12,8 +12,9 @@ from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from prometheus_client import make_wsgi_app
 from dotenv import load_dotenv
 
-from src.k8s_client import K8sClient
-from src.ai_service import AIQueryService
+from k8s_client import K8sClient
+from ai_service import AIQueryService
+from debug_assistant import DebugAssistant
 
 load_dotenv()
 
@@ -33,9 +34,18 @@ QUERY_COUNTER = Counter(
     'k8s_agent_queries_total', 
     'Total number of queries processed'
 )
+DEBUG_COUNTER = Counter(
+    'k8s_agent_debug_requests_total',
+    'Total number of debug requests processed',
+    ['issue_type']
+)
 QUERY_LATENCY = Histogram(
     'k8s_agent_query_duration_seconds', 
     'Time spent processing queries'
+)
+DEBUG_LATENCY = Histogram(
+    'k8s_agent_debug_duration_seconds',
+    'Time spent processing debug requests'
 )
 ERROR_COUNTER = Counter(
     'k8s_agent_errors_total', 
@@ -61,6 +71,19 @@ class QueryRequest(BaseModel):
         return v.strip()
 
 
+class DebugPodRequest(BaseModel):
+    """Request model for pod crash debugging endpoint."""
+    pod_name: str
+    namespace: str = "default"
+    
+    @field_validator('pod_name')
+    @classmethod
+    def pod_name_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError('Pod name cannot be empty')
+        return v.strip()
+
+
 class QueryResponse(BaseModel):
     """Response model for query endpoint."""
     query: str
@@ -76,7 +99,8 @@ class HealthResponse(BaseModel):
 
 def create_app(
     k8s_client: K8sClient = None,
-    ai_service: AIQueryService = None
+    ai_service: AIQueryService = None,
+    debug_assistant: DebugAssistant = None
 ) -> Flask:
     """
     Create and configure the Flask application.
@@ -84,6 +108,7 @@ def create_app(
     Args:
         k8s_client: Optional K8sClient instance (for testing)
         ai_service: Optional AIQueryService instance (for testing)
+        debug_assistant: Optional DebugAssistant instance (for testing)
         
     Returns:
         Configured Flask application
@@ -96,6 +121,8 @@ def create_app(
             k8s_client = K8sClient()
         if ai_service is None:
             ai_service = AIQueryService()
+        if debug_assistant is None:
+            debug_assistant = DebugAssistant()
         
         logger.info("Application services initialized successfully")
     except Exception as e:
@@ -121,7 +148,8 @@ def create_app(
                 components={
                     "kubernetes": "connected",
                     "ai_service": "connected",
-                    "model": model_info["model"]
+                    "model": model_info["model"],
+                    "debug_assistant": "ready"
                 }
             )
             return jsonify(health.model_dump()), 200
@@ -132,6 +160,72 @@ def create_app(
                 "status": "unhealthy",
                 "error": str(e)
             }), 503
+    
+    @app.route('/debug/pod-crash', methods=['POST'])
+    def debug_pod_crash():
+        """
+        Debug a crashing or failing pod and provide actionable fixes.
+        
+        Request body:
+            {
+                "pod_name": "my-app-xyz",
+                "namespace": "default"  // optional, defaults to "default"
+            }
+        
+        Returns:
+            JSON response with root cause analysis and suggested fixes
+        """
+        start_time = time.time()
+        
+        try:
+            # Validate request
+            request_data = request.get_json(silent=True)
+            if not request_data:
+                return jsonify({"error": "Request body is required"}), 400
+            
+            debug_request = DebugPodRequest(**request_data)
+            logger.info(f"Processing debug request for pod: {debug_request.pod_name}")
+            
+            # Perform debugging
+            result = debug_assistant.debug_pod(
+                pod_name=debug_request.pod_name,
+                namespace=debug_request.namespace
+            )
+            
+            # Update metrics
+            if result.get("success"):
+                issue_type = result.get("issue_type", "unknown")
+                DEBUG_COUNTER.labels(issue_type=issue_type).inc()
+            else:
+                ERROR_COUNTER.labels(error_type='pod_not_found').inc()
+            
+            # Calculate processing time
+            processing_time = (time.time() - start_time) * 1000
+            result["processing_time_ms"] = round(processing_time, 2)
+            
+            status_code = 200 if result.get("success") else 404
+            return jsonify(result), status_code
+            
+        except ValidationError as e:
+            ERROR_COUNTER.labels(error_type='validation').inc()
+            logger.warning(f"Validation error: {e}")
+            error_details = [
+                {
+                    "field": ".".join(str(x) for x in err["loc"]),
+                    "message": err["msg"],
+                    "type": err["type"]
+                }
+                for err in e.errors()
+            ]
+            return jsonify({"error": "Invalid request", "details": error_details}), 400
+            
+        except Exception as e:
+            ERROR_COUNTER.labels(error_type='unexpected').inc()
+            logger.error(f"Unexpected error processing debug request: {e}", exc_info=True)
+            return jsonify({"error": "Internal server error", "details": str(e)}), 500
+            
+        finally:
+            DEBUG_LATENCY.observe(time.time() - start_time)
     
     @app.route('/query', methods=['POST'])
     def query():
@@ -188,7 +282,6 @@ def create_app(
         except ValidationError as e:
             ERROR_COUNTER.labels(error_type='validation').inc()
             logger.warning(f"Validation error: {e}")
-            # Convert validation errors to JSON-serializable format
             error_details = [
                 {
                     "field": ".".join(str(x) for x in err["loc"]),
@@ -230,5 +323,5 @@ def create_app(
 
 if __name__ == "__main__":
     app = create_app()
-    logger.info("Starting Kubernetes AI Query Agent on port 8000")
+    logger.info("Starting Kubernetes AI Debug Assistant on port 8000")
     app.run(host="0.0.0.0", port=8000, debug=False)

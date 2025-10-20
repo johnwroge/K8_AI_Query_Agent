@@ -1,0 +1,162 @@
+# Test pods with intentional issues for debugging
+# Deploy these to test the K8s Debug Assistant
+
+---
+# 1. CrashLoopBackOff - Container exits immediately
+apiVersion: v1
+kind: Pod
+metadata:
+  name: crash-loop-test
+  namespace: default
+  labels:
+    app: test-crash-loop
+spec:
+  containers:
+  - name: app
+    image: busybox:latest
+    command: ["sh", "-c", "echo 'Starting app...'; echo 'ERROR: Database connection failed to postgres:5432'; exit 1"]
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "100m"
+      limits:
+        memory: "128Mi"
+        cpu: "200m"
+
+---
+# 2. ImagePullBackOff - Invalid image
+apiVersion: v1
+kind: Pod
+metadata:
+  name: image-pull-test
+  namespace: default
+  labels:
+    app: test-image-pull
+spec:
+  containers:
+  - name: app
+    image: nonexistent-registry.io/fake-image:v1.0
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "100m"
+
+---
+# 3. OOMKilled - Memory limit too low
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oom-test
+  namespace: default
+  labels:
+    app: test-oom
+spec:
+  containers:
+  - name: memory-hog
+    image: python:3.11-slim
+    command: 
+      - python
+      - -c
+      - |
+        import time
+        print("Starting memory allocation...")
+        data = []
+        while True:
+            data.append('x' * 10**6)  # Allocate 1MB at a time
+            time.sleep(0.1)
+    resources:
+      requests:
+        memory: "32Mi"
+        cpu: "100m"
+      limits:
+        memory: "64Mi"  # Intentionally low to trigger OOM
+        cpu: "200m"
+
+---
+# 4. Configuration Error - Missing environment variable
+apiVersion: v1
+kind: Pod
+metadata:
+  name: config-error-test
+  namespace: default
+  labels:
+    app: test-config-error
+spec:
+  containers:
+  - name: app
+    image: busybox:latest
+    command: 
+      - sh
+      - -c
+      - |
+        echo "Application starting..."
+        echo "Checking configuration..."
+        if [ -z "$DATABASE_URL" ]; then
+          echo "FATAL ERROR: DATABASE_URL environment variable is required but not set"
+          echo "Please set DATABASE_URL to connect to the database"
+          exit 1
+        fi
+        echo "Starting server..."
+        sleep 3600
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "100m"
+
+---
+# 5. Permission Error - Trying to bind privileged port
+apiVersion: v1
+kind: Pod
+metadata:
+  name: permission-test
+  namespace: default
+  labels:
+    app: test-permission
+spec:
+  containers:
+  - name: app
+    image: nginx:latest
+    command: 
+      - sh
+      - -c
+      - |
+        echo "Attempting to start nginx on port 80..."
+        nginx -g 'daemon off;' 2>&1 | tee /tmp/nginx.log || \
+        (echo "ERROR: Permission denied - cannot bind to port 80"; cat /tmp/nginx.log; exit 1)
+    securityContext:
+      runAsUser: 1000  # Non-root user
+      runAsNonRoot: true
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "100m"
+
+---
+# 6. Network Connectivity Issue
+apiVersion: v1
+kind: Pod
+metadata:
+  name: network-test
+  namespace: default
+  labels:
+    app: test-network
+spec:
+  containers:
+  - name: app
+    image: busybox:latest
+    command:
+      - sh
+      - -c
+      - |
+        echo "Testing network connectivity..."
+        echo "Attempting to connect to non-existent service..."
+        if ! nc -zv nonexistent-service 5432 2>&1; then
+          echo "ERROR: Cannot reach database at nonexistent-service:5432"
+          echo "Connection refused or host unreachable"
+          exit 1
+        fi
+        sleep 3600
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "100m"
